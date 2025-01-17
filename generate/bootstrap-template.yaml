@@ -1,0 +1,41 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: bootstrap-template
+  labels:
+    eficode.com/ns-as-a-service: bootstrap-template
+---
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: default-quota
+  namespace: bootstrap-template
+  labels:
+    eficode.com/ns-as-a-service: default-quota
+spec:
+  hard:
+    limits.cpu: "2"
+    limits.memory: 2Gi
+---
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: default-limit-range
+  namespace: bootstrap-template
+  labels:
+    eficode.com/ns-as-a-service: default-limit-range
+spec:
+  limits:
+    - type: Container
+      default: 
+        cpu: 200m
+        memory: 200Mi
+      defaultRequest:
+        cpu: 100m
+        memory: 100Mi
+      max:
+        cpu: "1"
+        memory: 1Gi
+      min:
+        cpu: 100m
+        memory: 100Mi

@@ -1,0 +1,5 @@
+features:
+  policyExceptions:
+    enabled: true
+    namespace: '*'
+

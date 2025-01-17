@@ -1,0 +1,21 @@
+apiVersion: kyverno.io/v2
+kind: PolicyException
+metadata:
+  name: busybox-exclude-qos
+  labels:
+    cleanup.kyverno.io/ttl: 2m
+spec:
+  exceptions:
+  - policyName: ensure-burstable-qos-class
+    ruleNames: 
+    - require-resource-requests
+  match:
+    any:
+    - resources:
+        kinds:
+        - Pod
+        namespaces:
+        - webshop-production
+        names:
+        - "nginx"
+  

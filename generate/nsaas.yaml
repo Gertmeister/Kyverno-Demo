@@ -1,0 +1,98 @@
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: bootstrap-namespace
+spec:
+  background: false
+  rules:    
+  - name: mark-bootstrap
+    match:
+      any:
+      - resources:
+          kinds:
+          - Namespace
+          operations:
+          - CREATE
+          names:
+          - "team-*"
+    exclude:
+      any:
+      - resources:
+          namespaces:
+          - kube-system
+          - default
+          - kube-public
+          - kyverno
+          - bootstrap-template
+    mutate:
+      patchStrategicMerge:
+        metadata:
+          labels: 
+            eficode.com/ns-as-a-service: "{{request.object.metadata.name}}"
+            eficode.com/namespace-owner: "{{request.userInfo.username}}"
+
+  - name: default-deny-netpolicy
+    match:
+      any:
+      - resources:
+          kinds:
+          - Namespace
+          selector:
+            matchLabels:
+              eficode.com/ns-as-a-service: "?*"
+              eficode.com/namespace-owner: "?*"
+    generate:
+      orphanDownstreamOnPolicyDelete: false
+      synchronize: true
+      apiVersion: networking.k8s.io/v1
+      kind: NetworkPolicy
+      name: default-deny
+      namespace: "{{ request.object.metadata.name }}"
+      data:
+        spec:
+          podSelector: {}
+          policyTypes:
+          - Ingress
+          - Egress
+
+  - name: default-resource-quota
+    match:
+      any:
+      - resources: 
+          kinds: 
+          - Namespace
+          selector:
+            matchLabels:
+              eficode.com/ns-as-a-service: "?*"
+              eficode.com/namespace-owner: "?*"
+    generate:
+      orphanDownstreamOnPolicyDelete: false
+      synchronize: true
+      apiVersion: v1
+      kind: ResourceQuota
+      name: "default-quota"
+      namespace: "{{ request.object.metadata.name }}"
+      clone:
+        namespace: bootstrap-template
+        name: default-quota
+
+  - name: default-limit-range
+    match: 
+      any:
+      - resources:
+          kinds:
+          - Namespace
+          selector:
+              matchLabels:
+                eficode.com/ns-as-a-service: "?*"
+                eficode.com/namespace-owner: "?*"
+    generate:
+      orphanDownstreamOnPolicyDelete: false
+      synchronize: true
+      apiVersion: v1
+      kind: LimitRange
+      name: "default-limit-range"
+      namespace: "{{ request.object.metadata.name }}"
+      clone:
+        name: default-limit-range
+        namespace: bootstrap-template
